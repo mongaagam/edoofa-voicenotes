@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edoofa VoiceFlow AI - WhatsApp Voice Note Pipeline</title>
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Styling -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Glows -->
+  <div class="glow-bg-1"></div>
+  <div class="glow-bg-2"></div>
+
+  <div class="app-container">
+    
+    <!-- Top premium navigation bar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">
+          <i data-lucide="mic"></i>
+        </div>
+        <div class="brand-text">
+          <h1>Edoofa VoiceFlow</h1>
+          <span class="sub-logo">AI Voice Note Pipeline</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Google Sheets Status -->
+        <div class="status-pill sheets-status" id="sheetsSyncIndicator">
+          <span class="status-dot warning"></span>
+          <span class="status-label">Sheets: Local CSV DB</span>
+        </div>
+
+        <!-- WhatsApp Status -->
+        <div class="status-pill whatsapp-status" id="whatsappStatusIndicator">
+          <span class="status-dot info"></span>
+          <span class="status-label" id="whatsappStatusText">Connecting WhatsApp...</span>
+        </div>
+
+        <!-- Manual Google Sheet Sync -->
+        <button id="btnBulkSync" class="btn btn-secondary flex-btn" title="Sync local entries to Google Sheet">
+          <i data-lucide="refresh-cw"></i>
+          <span>Sync Sheets</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      
+      <!-- Left sidebar: Simulator Controls & Stats -->
+      <aside class="sidebar-panel">
+        
+        <!-- Live Statistics Card -->
+        <div class="glass-card stats-card">
+          <h3><i data-lucide="bar-chart-2"></i> Pipeline Metrics</h3>
+          <div class="metrics-grid">
+            <div class="metric-item">
+              <span class="metric-value" id="statTotalVNs">0</span>
+              <span class="metric-label">Total Notes</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-value" id="statStudents">0</span>
+              <span class="metric-label">Students</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-value" id="statEdoofaVNs">0</span>
+              <span class="metric-label">Edoofa Team</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-value" id="statStudentVNs">0</span>
+              <span class="metric-label">Student/Parent</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Operations Simulator (Crucial for live test-drive!) -->
+        <div class="glass-card simulator-card">
+          <div class="card-header">
+            <h3><i data-lucide="play-circle"></i> Pipeline Simulator</h3>
+            <span class="badge simulator-badge">Test Drive</span>
+          </div>
+          <p class="simulator-desc">Instantly test the end-to-end voice note capturing, Gemini AI transcription, daily sequential numbering, and spreadsheet logging pipeline without a physical phone!</p>
+          
+          <form id="simulatorForm" class="simulator-form">
+            <div class="form-group">
+              <label for="simStudentName">Student Name</label>
+              <input type="text" id="simStudentName" placeholder="e.g. John Doe" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="simGroupName">WhatsApp Group Chat</label>
+              <input type="text" id="simGroupName" placeholder="e.g. Edoofa - John Doe" required>
+            </div>
+
+            <div class="form-group">
+              <label for="simSenderType">Speaker / Sender Type</label>
+              <select id="simSenderType" required>
+                <option value="Student/Parent">Student / Parent (Inbound)</option>
+                <option value="Edoofa Team">Edoofa Team (Outbound)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="simSenderName">Sender Display Name</label>
+              <input type="text" id="simSenderName" placeholder="e.g. John Doe / Mentor Raghav" required>
+            </div>
+
+            <button type="submit" id="btnSimulate" class="btn btn-primary btn-full flex-btn-center">
+              <i data-lucide="sparkles"></i>
+              <span>Inject Simulated Voice Note</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- CSV database download link -->
+        <div class="glass-card doc-download-card">
+          <h4><i data-lucide="database"></i> Offline Data Backups</h4>
+          <p>Every transaction is safely preserved locally. Access the flat spreadsheet files directly.</p>
+          <div class="button-row">
+            <a href="/voice_notes.csv" download class="btn btn-secondary btn-half flex-btn-center">
+              <i data-lucide="file-spreadsheed"></i>
+              <span>Download CSV</span>
+            </a>
+            <a href="/Edoofa_VoiceNotes_AI_Solution.md" download class="btn btn-secondary btn-half flex-btn-center">
+              <i data-lucide="file-text"></i>
+              <span>Download Doc</span>
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center / Right main area: Live Stream of Captured Voice Notes -->
+      <section class="content-feed-panel">
+        <div class="feed-header">
+          <h2><i data-lucide="activity"></i> Live Voice Note Activity Feed</h2>
+          <div class="feed-filter">
+            <span class="active-filter-label" id="filterStatusText">Showing all captures</span>
+          </div>
+        </div>
+
+        <!-- Live Capture Processing Alert (Visible only when AI is transcribing) -->
+        <div class="processing-ticker-card hidden" id="processingAlert">
+          <div class="ticker-content">
+            <div class="ticker-pulse"></div>
+            <div class="ticker-text-block">
+              <h4>AI Engine is transcribing a new voice note...</h4>
+              <p><span id="tickerStudent">Student</span> (<span id="tickerSender">Sender</span>) • Group: <span id="tickerGroup">Group Chat</span></p>
+            </div>
+          </div>
+          <div class="ticker-loader"></div>
+        </div>
+
+        <!-- Scrollable Feed container -->
+        <div class="voice-notes-feed" id="voiceNotesFeed">
+          
+          <!-- Empty State (Shown initially if no notes logged) -->
+          <div class="empty-state" id="feedEmptyState">
+            <div class="empty-icon">
+              <i data-lucide="volume-2"></i>
+            </div>
+            <h3>No Voice Notes Logged Yet</h3>
+            <p>Listen to a voice note on WhatsApp or use the <strong>Pipeline Simulator</strong> on the left panel to trigger your very first capture and watch it process in real-time!</p>
+          </div>
+
+          <!-- Cards will be dynamically injected here by app.js -->
+
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- WhatsApp QR Scanner Modal -->
+  <div class="modal-overlay hidden" id="qrModal">
+    <div class="glass-card modal-card">
+      <div class="modal-header">
+        <h2><i data-lucide="qr-code"></i> Link WhatsApp Session</h2>
+      </div>
+      <div class="modal-body">
+        <p>WhatsApp Web needs authentication. Scan this QR code with your WhatsApp mobile app to launch the automated listener.</p>
+        <div class="qr-container">
+          <img id="qrImage" src="" alt="WhatsApp QR Code Scanner" class="qr-image">
+          <div class="qr-loader" id="qrLoader">
+            <div class="spinner"></div>
+            <p>Generating QR Code...</p>
+          </div>
+        </div>
+        <div class="qr-steps">
+          <ol>
+            <li>Open WhatsApp on your phone.</li>
+            <li>Tap <strong>Menu</strong> (three dots) or <strong>Settings</strong> and select <strong>Linked Devices</strong>.</li>
+            <li>Tap on <strong>Link a Device</strong> and point your camera to this screen.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lucide Icons Rendering -->
+  <script>
+    lucide.createIcons();
+  </script>
+  <!-- Frontend Javascript -->
+  <script src="app.js"></script>
+</body>
+</html>
