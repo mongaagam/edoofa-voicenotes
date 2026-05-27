@@ -41,9 +41,6 @@ const client = new Client({
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
       '--disable-gpu',
       '--disable-web-security'
     ]
@@ -194,7 +191,8 @@ client.on('message_create', async (msg) => {
       summary,
       actionItems,
       audioFileName: filename,
-      audioData: base64Audio
+      audioData: base64Audio,
+      timestamp: msg.timestamp ? msg.timestamp * 1000 : undefined
     });
 
     console.log(`Voice Note successfully captured and logged as VN #${loggedRecord.vnNumber}!`);

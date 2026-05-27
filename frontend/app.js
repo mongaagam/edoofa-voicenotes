@@ -3,9 +3,11 @@
 // =========================================================================
 
 // Determine environment dynamically
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
-const API_BASE = isLocal ? 'http://localhost:5002' : 'https://edoofa-voicenotes.onrender.com';
-const WS_BASE = isLocal ? 'ws://localhost:5002' : 'wss://edoofa-voicenotes.onrender.com';
+const isFile = window.location.protocol === 'file:';
+const API_BASE = isFile ? 'http://localhost:5002' : window.location.origin;
+const WS_BASE = isFile 
+  ? 'ws://localhost:5002' 
+  : (window.location.protocol === 'https:' ? `wss://${window.location.host}` : `ws://${window.location.host}`);
 
 let socket;
 let voiceNotes = [];
@@ -13,6 +15,7 @@ let currentAudio = null;
 let currentPlayingBtn = null;
 let currentPlayingBar = null;
 let currentPlayingTimer = null;
+let isQrDismissed = false;
 
 // Initialize layout elements
 const elWhatsappStatus = document.getElementById('whatsappStatusText');
@@ -117,17 +120,19 @@ function updateWhatsAppStatus(data) {
     elAppContainer.classList.remove('hidden');
   } else if (status === 'SCANNING_REQUIRED') {
     elWhatsappDot.classList.add('warning');
-    elAppContainer.classList.add('hidden');
-    // Load QR Code inside browser modal!
-    if (data.qr) {
+    elAppContainer.classList.remove('hidden');
+    // Load QR Code inside browser modal if not explicitly dismissed
+    if (data.qr && !isQrDismissed) {
       elQrLoader.classList.add('hidden');
       elQrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(data.qr)}`;
       elQrModal.classList.remove('hidden');
+    } else {
+      elQrModal.classList.add('hidden');
     }
   } else if (status === 'AUTHENTICATING') {
     elWhatsappDot.classList.add('info');
     elQrModal.classList.add('hidden');
-    elAppContainer.classList.add('hidden');
+    elAppContainer.classList.remove('hidden');
   } else if (status === 'INITIALIZATION_FAILED') {
     elWhatsappDot.classList.add('danger');
     elQrModal.classList.add('hidden');
@@ -135,7 +140,7 @@ function updateWhatsAppStatus(data) {
   } else {
     elWhatsappDot.classList.add('danger');
     elQrModal.classList.add('hidden');
-    elAppContainer.classList.add('hidden');
+    elAppContainer.classList.remove('hidden');
   }
 }
 
@@ -484,6 +489,15 @@ function escapeHTML(str) {
       '"': '&quot;'
     }[tag] || tag)
   );
+}
+
+// Dismiss QR Modal to explore the dashboard in Simulator Mode
+const elBtnDismissQr = document.getElementById('btnDismissQr');
+if (elBtnDismissQr) {
+  elBtnDismissQr.addEventListener('click', () => {
+    isQrDismissed = true;
+    elQrModal.classList.add('hidden');
+  });
 }
 
 // Connect on mount

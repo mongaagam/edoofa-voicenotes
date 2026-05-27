@@ -25,10 +25,10 @@ const VoiceNote = require('./models/VoiceNote');
  * @returns {Promise<Object>} - The logged record with sequential voice note number
  */
 const logVoiceNote = async (data) => {
-  const { studentName, groupName, senderType, senderName, transcript, summary, actionItems, audioFileName, audioData } = data;
+  const { studentName, groupName, senderType, senderName, transcript, summary, actionItems, audioFileName, audioData, timestamp } = data;
   
-  // Format current date (YYYY-MM-DD)
-  const now = new Date();
+  // Format date (use provided timestamp or fallback to current date)
+  const now = timestamp ? new Date(timestamp) : new Date();
   const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
   const fullTimestamp = now.toLocaleString();
 
@@ -138,6 +138,7 @@ const syncToGoogleSheets = async (record) => {
     const sheets = google.sheets({ version: 'v4', auth });
     
     // Structure of Google Sheets Row
+    const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5002}`;
     const rowValues = [
       record.date,
       record.studentName,
@@ -148,7 +149,7 @@ const syncToGoogleSheets = async (record) => {
       record.transcript,
       record.summary,
       record.actionItems.join('; '),
-      `http://localhost:${process.env.PORT || 5002}/recordings/${record.audioFileName}`
+      `${appUrl}/api/audio/${record.audioFileName}`
     ];
 
     // Check if sheet headers need initialization (read first row)
