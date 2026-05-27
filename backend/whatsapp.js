@@ -177,7 +177,8 @@ client.on('message_create', async (msg) => {
       transcript,
       summary,
       actionItems,
-      audioFileName: filename
+      audioFileName: filename,
+      audioData: base64Audio
     });
 
     console.log(`Voice Note successfully captured and logged as VN #${loggedRecord.vnNumber}!`);

@@ -12,7 +12,7 @@ const cors = require('cors');
 const fs = require('fs');
 
 const { startWhatsApp, getStatus } = require('./whatsapp');
-const { getVoiceNotes, triggerBulkSync, logVoiceNote } = require('./sheets');
+const { getVoiceNotes, triggerBulkSync, logVoiceNote, getAudioByFilename } = require('./sheets');
 const { processVoiceNote } = require('./ai');
 
 const app = express();
@@ -53,14 +53,14 @@ const broadcast = (data) => {
 };
 
 // Handle WebSocket connection
-wss.on('connection', (ws) => {
+wss.on('connection', async (ws) => {
   console.log('DASHBOARD_WS: Premium dashboard client connected.');
   
   // Immediately send initial state
   ws.send(JSON.stringify({
     type: 'INITIAL_STATE',
     whatsapp: getStatus(),
-    voiceNotes: getVoiceNotes()
+    voiceNotes: await getVoiceNotes()
   }));
 
   ws.on('close', () => {
@@ -76,8 +76,8 @@ app.get('/api/status', (req, res) => {
 });
 
 // 2. Get list of all captured Voice Notes
-app.get('/api/voicenotes', (req, res) => {
-  res.json(getVoiceNotes());
+app.get('/api/voicenotes', async (req, res) => {
+  res.json(await getVoiceNotes());
 });
 
 // 3. Trigger manual bulk sync of Local-Only entries to Google Sheet
@@ -88,7 +88,7 @@ app.post('/api/sync', async (req, res) => {
       // Broadcast the updated list to all dashboard clients
       broadcast({
         type: 'BULK_SYNC_SUCCESS',
-        voiceNotes: getVoiceNotes()
+        voiceNotes: await getVoiceNotes()
       });
       res.json(result);
     } else {
@@ -169,6 +169,41 @@ app.post('/api/simulate', async (req, res) => {
   } catch (err) {
     console.error('API_SIMULATE: Simulation failed:', err);
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 5. Endpoint to fetch audio dynamically from MongoDB Base64
+app.get('/api/audio/:filename', async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    
+    // First try checking if it exists in local recordings folder (for backward compatibility during session)
+    const localPath = path.join(__dirname, 'recordings', filename);
+    if (fs.existsSync(localPath)) {
+      return res.sendFile(localPath);
+    }
+
+    // Otherwise, fetch Base64 data from MongoDB
+    const base64Audio = await getAudioByFilename(filename);
+    
+    if (!base64Audio) {
+      return res.status(404).send('Audio not found');
+    }
+
+    // Convert Base64 back to binary buffer
+    const audioBuffer = Buffer.from(base64Audio, 'base64');
+    
+    // Send as proper audio content
+    res.set({
+      'Content-Type': 'audio/ogg',
+      'Content-Length': audioBuffer.length,
+      'Accept-Ranges': 'bytes'
+    });
+    
+    res.end(audioBuffer);
+  } catch (error) {
+    console.error('API_AUDIO_FETCH: Error serving audio:', error);
+    res.status(500).send('Error serving audio');
   }
 });
 

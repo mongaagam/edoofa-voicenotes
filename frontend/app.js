@@ -282,7 +282,7 @@ function setupAudioPlayers() {
   playButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const filename = btn.getAttribute('data-file');
-      const audioUrl = `https://edoofa-voicenotes.onrender.com/recordings/${filename}`;
+      const audioUrl = `https://edoofa-voicenotes.onrender.com/api/audio/${filename}`;
       const parent = btn.closest('.player-container');
       const progressBar = parent.querySelector('.audio-progress');
       const timer = parent.querySelector('.player-timer');

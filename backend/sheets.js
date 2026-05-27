@@ -16,42 +16,35 @@ if (!fs.existsSync(csvPath)) {
   const headers = 'Date,Student Name,WhatsApp Group,Daily Voice Note #,Sender Type,Sender Name,Transcription,AI Summary,Action Items,Audio File,Sync Status\n';
   fs.writeFileSync(csvPath, headers);
 }
+const VoiceNote = require('./models/VoiceNote');
 
 /**
- * Appends a voice note record to the local JSON, CSV, and remote Google Sheets.
+ * Appends a voice note record to MongoDB, local CSV, and remote Google Sheets.
  * 
- * @param {Object} data - { studentName, groupName, senderType, senderName, transcript, summary, actionItems, audioFileName }
+ * @param {Object} data - { studentName, groupName, senderType, senderName, transcript, summary, actionItems, audioFileName, audioData }
  * @returns {Promise<Object>} - The logged record with sequential voice note number
  */
 const logVoiceNote = async (data) => {
-  const { studentName, groupName, senderType, senderName, transcript, summary, actionItems, audioFileName } = data;
+  const { studentName, groupName, senderType, senderName, transcript, summary, actionItems, audioFileName, audioData } = data;
   
   // Format current date (YYYY-MM-DD)
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
   const fullTimestamp = now.toLocaleString();
 
-  // Load existing database to calculate the daily sequential counter
-  const dbContent = fs.readFileSync(dbPath, 'utf8');
-  let records = [];
-  try {
-    records = JSON.parse(dbContent);
-  } catch (e) {
-    records = [];
-  }
-
-  // Count how many voice notes exist for THIS student on THIS date
-  const todayStudentNotes = records.filter(
-    (r) => r.studentName.toLowerCase() === studentName.toLowerCase() && r.date === dateStr
-  );
-  const vnNumber = todayStudentNotes.length + 1;
+  // Count how many voice notes exist for THIS student on THIS date from MongoDB
+  const todayStudentNotesCount = await VoiceNote.countDocuments({
+    studentName: new RegExp('^' + studentName + '$', 'i'),
+    date: dateStr
+  });
+  
+  const vnNumber = todayStudentNotesCount + 1;
 
   // Formulate action items string
   const actionItemsStr = actionItems.join('; ');
 
-  // Create new record
-  const newRecord = {
-    id: `vn_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+  // Create new record in MongoDB
+  const newRecordData = {
     timestamp: fullTimestamp,
     date: dateStr,
     studentName,
@@ -63,15 +56,17 @@ const logVoiceNote = async (data) => {
     summary,
     actionItems,
     audioFileName,
+    audioData,
     syncStatus: 'Local Only'
   };
 
-  // 1. Save to Local JSON DB
-  records.push(newRecord);
-  fs.writeFileSync(dbPath, JSON.stringify(records, null, 2));
+  const newVoiceNote = new VoiceNote(newRecordData);
+  await newVoiceNote.save();
 
-  // 2. Save to Local CSV
-  // Helper to escape CSV values
+  // Also convert the mongoose document to JSON for immediate downstream use
+  const newRecord = newVoiceNote.toJSON();
+
+  // 2. Save to Local CSV (Kept as backup, though ephemeral on Render)
   const csvEscape = (val) => {
     if (val === null || val === undefined) return '';
     let stringVal = String(val);
@@ -101,14 +96,10 @@ const logVoiceNote = async (data) => {
   // 3. Sync to Google Sheets if configured
   const sheetSynced = await syncToGoogleSheets(newRecord);
   if (sheetSynced) {
-    // Update local sync status
+    // Update local sync status in MongoDB
     newRecord.syncStatus = 'Synced';
-    // Update in JSON DB
-    const updatedRecords = records.map(r => r.id === newRecord.id ? { ...r, syncStatus: 'Synced' } : r);
-    fs.writeFileSync(dbPath, JSON.stringify(updatedRecords, null, 2));
-    
-    // Note: Overwriting CSV to update status in deep prototype requires rewriting or leaving as is.
-    // We will update the JSON database as the source of truth for the dashboard.
+    newVoiceNote.syncStatus = 'Synced';
+    await newVoiceNote.save();
   }
 
   return newRecord;
@@ -217,13 +208,14 @@ const syncToGoogleSheets = async (record) => {
 };
 
 /**
- * Returns all logged voice notes.
+ * Returns all logged voice notes from MongoDB.
  */
-const getVoiceNotes = () => {
-  if (!fs.existsSync(dbPath)) return [];
+const getVoiceNotes = async () => {
   try {
-    return JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+    const notes = await VoiceNote.find().sort({ timestamp: -1 }); // Sort by newest first if needed, though frontend does reverse
+    return notes.map(note => note.toJSON());
   } catch (e) {
+    console.error('Failed to get voice notes from MongoDB', e);
     return [];
   }
 };
@@ -233,10 +225,9 @@ const getVoiceNotes = () => {
  */
 const triggerBulkSync = async () => {
   console.log('SHEETS_ENGINE: Starting manual bulk sync for Local Only entries...');
-  const notes = getVoiceNotes();
-  const unsynced = notes.filter(n => n.syncStatus === 'Local Only');
+  const notes = await VoiceNote.find({ syncStatus: 'Local Only' });
   
-  if (unsynced.length === 0) {
+  if (notes.length === 0) {
     console.log('SHEETS_ENGINE: No local-only notes need syncing.');
     return { success: true, message: 'All voice notes are already synced.' };
   }
@@ -250,27 +241,37 @@ const triggerBulkSync = async () => {
   }
 
   let syncCount = 0;
-  for (let note of unsynced) {
-    const success = await syncToGoogleSheets(note);
+  for (let note of notes) {
+    const success = await syncToGoogleSheets(note.toJSON());
     if (success) {
       note.syncStatus = 'Synced';
+      await note.save();
       syncCount++;
     }
   }
 
-  // Save updated status back to JSON database
-  if (syncCount > 0) {
-    fs.writeFileSync(dbPath, JSON.stringify(notes, null, 2));
-  }
-
   return {
     success: true,
-    message: `Successfully synced ${syncCount} out of ${unsynced.length} pending voice notes to Google Sheets.`
+    message: `Successfully synced ${syncCount} out of ${notes.length} pending voice notes to Google Sheets.`
   };
+};
+
+/**
+ * Returns the audio Base64 data for a specific filename.
+ */
+const getAudioByFilename = async (filename) => {
+  try {
+    const note = await VoiceNote.findOne({ audioFileName: filename });
+    return note ? note.audioData : null;
+  } catch (e) {
+    console.error('Failed to get audio from MongoDB', e);
+    return null;
+  }
 };
 
 module.exports = {
   logVoiceNote,
   getVoiceNotes,
-  triggerBulkSync
+  triggerBulkSync,
+  getAudioByFilename
 };
