@@ -34,7 +34,8 @@ const elBtnSimulate = document.getElementById('btnSimulate');
 
 // Connect to WebSockets for instant live feedback
 function connectWS() {
-  const wsUrl = `ws://${window.location.host}`;
+  const BACKEND_DOMAIN = 'edoofa-voicenotes.onrender.com';
+  const wsUrl = `wss://${BACKEND_DOMAIN}`;
   console.log(`Connecting to WebSocket: ${wsUrl}`);
   
   socket = new WebSocket(wsUrl);
@@ -281,7 +282,7 @@ function setupAudioPlayers() {
   playButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const filename = btn.getAttribute('data-file');
-      const audioUrl = `/recordings/${filename}`;
+      const audioUrl = `https://edoofa-voicenotes.onrender.com/recordings/${filename}`;
       const parent = btn.closest('.player-container');
       const progressBar = parent.querySelector('.audio-progress');
       const timer = parent.querySelector('.player-timer');
@@ -404,7 +405,7 @@ elBtnBulkSync.addEventListener('click', async () => {
   elBtnBulkSync.querySelector('span').textContent = 'Syncing...';
   
   try {
-    const response = await fetch('/api/sync', { method: 'POST' });
+    const response = await fetch('https://edoofa-voicenotes.onrender.com/api/sync', { method: 'POST' });
     const data = await response.json();
     if (!response.ok) {
       alert(`Sync Failed: ${data.message}`);
@@ -434,7 +435,7 @@ elSimForm.addEventListener('submit', async (e) => {
   };
 
   try {
-    const response = await fetch('/api/simulate', {
+    const response = await fetch('https://edoofa-voicenotes.onrender.com/api/simulate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
