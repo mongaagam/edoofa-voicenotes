@@ -19,17 +19,19 @@ if (!fs.existsSync(recordingsDir)) {
 // Initialize WhatsApp client
 const client = new Client({
   authStrategy: new LocalAuth({
+    clientId: 'edoofa',
     dataPath: path.join(__dirname, '.wwebjs_auth')
   }),
   puppeteer: {
     headless: true,
-    executablePath: process.env.NODE_ENV === 'production' ? '/usr/bin/google-chrome-stable' : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
-      '--disable-gpu'
+      '--disable-gpu',
+      '--disable-web-security'
     ]
   }
 });

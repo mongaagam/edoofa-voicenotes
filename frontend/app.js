@@ -14,6 +14,7 @@ const elWhatsappStatus = document.getElementById('whatsappStatusText');
 const elWhatsappDot = document.querySelector('#whatsappStatusIndicator .status-dot');
 const elSheetsStatus = document.querySelector('#sheetsSyncIndicator .status-label');
 const elSheetsDot = document.querySelector('#sheetsSyncIndicator .status-dot');
+const elAppContainer = document.getElementById('appContainer');
 const elQrModal = document.getElementById('qrModal');
 const elQrImage = document.getElementById('qrImage');
 const elQrLoader = document.getElementById('qrLoader');
@@ -109,8 +110,10 @@ function updateWhatsAppStatus(data) {
   if (status === 'CONNECTED') {
     elWhatsappDot.classList.add('success');
     elQrModal.classList.add('hidden');
+    elAppContainer.classList.remove('hidden');
   } else if (status === 'SCANNING_REQUIRED') {
     elWhatsappDot.classList.add('warning');
+    elAppContainer.classList.add('hidden');
     // Load QR Code inside browser modal!
     if (data.qr) {
       elQrLoader.classList.add('hidden');
@@ -120,9 +123,11 @@ function updateWhatsAppStatus(data) {
   } else if (status === 'AUTHENTICATING' || status === 'INITIALIZATION_FAILED') {
     elWhatsappDot.classList.add('info');
     elQrModal.classList.add('hidden');
+    elAppContainer.classList.add('hidden');
   } else {
     elWhatsappDot.classList.add('danger');
     elQrModal.classList.add('hidden');
+    elAppContainer.classList.add('hidden');
   }
 }
 
