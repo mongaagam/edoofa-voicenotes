@@ -11,7 +11,7 @@ let lastQr = null;
 let broadcastCallback = null;
 
 // Ensure audio directory exists for local player fallback
-const recordingsDir = path.join(__dirname, 'public', 'recordings');
+const recordingsDir = path.join(__dirname, 'recordings');
 if (!fs.existsSync(recordingsDir)) {
   fs.mkdirSync(recordingsDir, { recursive: true });
 }

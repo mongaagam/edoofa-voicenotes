@@ -24,10 +24,10 @@ app.use(cors());
 app.use(express.json());
 
 // Serve Static Frontend Dashboard Files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Ensure recordings folder is accessible
-app.use('/recordings', express.static(path.join(__dirname, 'public', 'recordings')));
+app.use('/recordings', express.static(path.join(__dirname, 'recordings')));
 
 // Serve Technical Solution Proposal cover document
 app.get('/Edoofa_VoiceNotes_AI_Solution.md', (req, res) => {
@@ -109,8 +109,8 @@ app.post('/api/simulate', async (req, res) => {
   const isOutgoing = senderType === 'Edoofa Team';
   const filename = `simulated_vn_${Date.now()}.ogg`;
 
-  // Write a dummy mock audio file in public/recordings so the play button works
-  const mockAudioSource = path.join(__dirname, 'public', 'recordings', filename);
+  // Write a dummy mock audio file in recordings so the play button works
+  const mockAudioSource = path.join(__dirname, 'recordings', filename);
   try {
     // Generate a valid tiny silent ogg/wav header or just copy a placeholder if it exists,
     // or just write a small text buffer which is fine for HTML5 audio simulation since it's a test

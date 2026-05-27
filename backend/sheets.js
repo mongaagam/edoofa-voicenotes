@@ -4,7 +4,7 @@ const { google } = require('googleapis');
 
 // Local databases paths
 const dbPath = path.join(__dirname, 'database.json');
-const csvPath = path.join(__dirname, 'public', 'voice_notes.csv');
+const csvPath = path.join(__dirname, 'voice_notes.csv');
 
 // Initialize local JSON DB if missing
 if (!fs.existsSync(dbPath)) {
