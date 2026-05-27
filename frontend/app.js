@@ -124,10 +124,14 @@ function updateWhatsAppStatus(data) {
       elQrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(data.qr)}`;
       elQrModal.classList.remove('hidden');
     }
-  } else if (status === 'AUTHENTICATING' || status === 'INITIALIZATION_FAILED') {
+  } else if (status === 'AUTHENTICATING') {
     elWhatsappDot.classList.add('info');
     elQrModal.classList.add('hidden');
     elAppContainer.classList.add('hidden');
+  } else if (status === 'INITIALIZATION_FAILED') {
+    elWhatsappDot.classList.add('danger');
+    elQrModal.classList.add('hidden');
+    elAppContainer.classList.remove('hidden');
   } else {
     elWhatsappDot.classList.add('danger');
     elQrModal.classList.add('hidden');
