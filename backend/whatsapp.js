@@ -2,6 +2,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { processVoiceNote } = require('./ai');
 const { logVoiceNote } = require('./sheets');
 
@@ -16,6 +17,16 @@ if (!fs.existsSync(recordingsDir)) {
   fs.mkdirSync(recordingsDir, { recursive: true });
 }
 
+// Determine Chrome executable path based on OS
+let chromePath = undefined;
+if (os.platform() === 'darwin') {
+  chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+} else if (os.platform() === 'linux') {
+  chromePath = '/usr/bin/google-chrome'; // Default for Render/Docker Linux
+} else if (os.platform() === 'win32') {
+  chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+}
+
 // Initialize WhatsApp client
 const client = new Client({
   authStrategy: new LocalAuth({
@@ -24,6 +35,7 @@ const client = new Client({
   }),
   puppeteer: {
     headless: true,
+    executablePath: chromePath,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
