@@ -2,6 +2,11 @@
 // EDOOFA VOICEFLOW AI - FRONTEND INTERACTION LOGIC
 // =========================================================================
 
+// Determine environment dynamically
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
+const API_BASE = isLocal ? 'http://localhost:5002' : 'https://edoofa-voicenotes.onrender.com';
+const WS_BASE = isLocal ? 'ws://localhost:5002' : 'wss://edoofa-voicenotes.onrender.com';
+
 let socket;
 let voiceNotes = [];
 let currentAudio = null;
@@ -35,8 +40,7 @@ const elBtnSimulate = document.getElementById('btnSimulate');
 
 // Connect to WebSockets for instant live feedback
 function connectWS() {
-  const BACKEND_DOMAIN = 'edoofa-voicenotes.onrender.com';
-  const wsUrl = `wss://${BACKEND_DOMAIN}`;
+  const wsUrl = WS_BASE;
   console.log(`Connecting to WebSocket: ${wsUrl}`);
   
   socket = new WebSocket(wsUrl);
@@ -287,7 +291,7 @@ function setupAudioPlayers() {
   playButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const filename = btn.getAttribute('data-file');
-      const audioUrl = `https://edoofa-voicenotes.onrender.com/api/audio/${filename}`;
+      const audioUrl = `${API_BASE}/api/audio/${filename}`;
       const parent = btn.closest('.player-container');
       const progressBar = parent.querySelector('.audio-progress');
       const timer = parent.querySelector('.player-timer');
@@ -410,7 +414,7 @@ elBtnBulkSync.addEventListener('click', async () => {
   elBtnBulkSync.querySelector('span').textContent = 'Syncing...';
   
   try {
-    const response = await fetch('https://edoofa-voicenotes.onrender.com/api/sync', { method: 'POST' });
+    const response = await fetch(`${API_BASE}/api/sync`, { method: 'POST' });
     const data = await response.json();
     if (!response.ok) {
       alert(`Sync Failed: ${data.message}`);
@@ -440,7 +444,7 @@ elSimForm.addEventListener('submit', async (e) => {
   };
 
   try {
-    const response = await fetch('https://edoofa-voicenotes.onrender.com/api/simulate', {
+    const response = await fetch(`${API_BASE}/api/simulate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

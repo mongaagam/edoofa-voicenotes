@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+backend/.wwebjs_auth/
+backend/.wwebjs_cache/
+backend/recordings/
+backend/voice_notes.csv
+.env
